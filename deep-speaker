@@ -1,55 +1,126 @@
 #!/usr/bin/env bash
 
+POSITIONAL=()
+while [[ $# -gt 0 ]]
+do
+key="$1"
+
+case $key in
+	-t|--task)
+	TASK="$2"
+	shift # past argument
+	shift # past value
+	;;
+	-d|--audio_dir)
+	AUDIOPATH="$2"
+	shift # past argument
+	shift # past value
+	;;
+	-e|--extension)
+	EXTENSION="$2"
+	shift # past argument
+	shift # past value
+	;;
+	-c|--counts_per_speaker)
+	COUNTS_PER_SPEAKER="$2"
+	shift # past argument
+	shift # past value
+	;;
+	-ep|--epochs)
+	EPOCHS="$2"
+	shift # past argument
+	shift # past value
+	;;
+	-spe|--steps_per_epoch)
+	STEP_PER_EPOCH="$2"
+	shift # past argument
+	shift # past value
+	;;
+	*)    # unknown option
+	POSITIONAL+=("$1") # save it in an array for later
+	shift # past argument
+	;;
+esac
+done
+set -- "${POSITIONAL[@]}" # restore positional parameters
+
 set -e
 
 HOME_DIR=$(eval echo "~")
 WORKING_DIR="${HOME_DIR}/.deep-speaker-wd"
 
-if [ $# -lt 1 ]; then
-  echo "Usage : $0 Task [download_librispeech, build_mfcc, build_model_inputs, train_softmax, train_triplet]"
-  exit
+if [ -z ${TASK+x} ]; then
+	echo "Usage : $0 Task [download_librispeech, build_mfcc, build_model_inputs, train_softmax, train_triplet]"
+	exit
 fi
+
+if [ -z ${EXTENSION+x} ]
+then
+	EXTENSION="flac"
+fi
+
+if [ -z ${EPOCHS+x} ]
+then
+	EPOCHS=100
+fi
+
+if [ -z ${STEP_PER_EPOCH+x} ]
+then
+	STEP_PER_EPOCH=1000
+fi
+
 
 PRE_TRAINING_WORKING_DIR="${WORKING_DIR}/pre-training"
 TRIPLET_TRAINING_WORKING_DIR="${WORKING_DIR}/triplet-training"
 
 mkdir -p "${WORKING_DIR}"
 
-case "$1" in
+case "$TASK" in
 
 download_librispeech)
-  echo "[download_librispeech] selected."
-  echo "Will download and unzip the datasets in ${WORKING_DIR}."
-  # WORKING_DIR/LibriSpeech
-  cp download_librispeech.sh "${WORKING_DIR}"
-  cd "${WORKING_DIR}" && bash download_librispeech.sh && cd -
-  ;;
+	echo "[download_librispeech] selected."
+	# WORKING_DIR/LibriSpeech
+	cp download_librispeech.sh "${WORKING_DIR}"
+	cd "${WORKING_DIR}" && bash download_librispeech.sh && cd -
+	;;
 
 build_mfcc)
-  echo "[build_mfcc] selected."
-  python cli.py build-mfcc-cache --working_dir "${PRE_TRAINING_WORKING_DIR}" --audio_dir "${WORKING_DIR}/LibriSpeech/train-clean-360"
-  python cli.py build-mfcc-cache --working_dir "${TRIPLET_TRAINING_WORKING_DIR}" --audio_dir "${WORKING_DIR}/LibriSpeech"
-  ;;
+	echo "[build_mfcc] selected."
+	if [ -z ${AUDIOPATH+x} ]
+	then
+		python cli.py build-mfcc-cache --working_dir "${PRE_TRAINING_WORKING_DIR}" --extension "$EXTENSION" --audio_dir "${WORKING_DIR}/LibriSpeech/train-clean-360"
+		python cli.py build-mfcc-cache --working_dir "${TRIPLET_TRAINING_WORKING_DIR}" --extension "$EXTENSION" --audio_dir "${WORKING_DIR}/LibriSpeech"
+	else
+		echo "AUDIOPATH = ${AUDIOPATH}"
+		python cli.py build-mfcc-cache --working_dir "${TRIPLET_TRAINING_WORKING_DIR}" --extension "$EXTENSION" --audio_dir "${AUDIOPATH}"
+	fi
+	echo "EXTENSION = ${EXTENSION}"
+	;;
 
 build_model_inputs)
-  echo "[build_model_inputs] selected."
-  python cli.py build-keras-inputs --working_dir "${PRE_TRAINING_WORKING_DIR}"
-  ;;
+	echo "[build_model_inputs] selected."
+	if [ -z ${COUNTS_PER_SPEAKER+x} ]
+	then
+		python cli.py build-keras-inputs --working_dir "${PRE_TRAINING_WORKING_DIR}"
+	else
+		echo "COUNTS_PER_SPEAKER = ${COUNTS_PER_SPEAKER}"
+		python cli.py build-keras-inputs --working_dir "${TRIPLET_TRAINING_WORKING_DIR}" --counts_per_speaker "${COUNTS_PER_SPEAKER}"
+	fi
+	;;
 
 train_softmax)
-  # Pre-training (0.92k speakers).
-  echo "[train_softmax] selected."
-  python cli.py train-model --working_dir "${PRE_TRAINING_WORKING_DIR}" --pre_training_phase
-  ;;
-
+	# Pre-training (0.92k speakers).
+	echo "[train_softmax] selected."
+	python cli.py train-model --working_dir "${TRIPLET_TRAINING_WORKING_DIR}" --epochs ${EPOCHS} --steps_per_epoch ${STEP_PER_EPOCH} --pre_training_phase
+	;;
 train_triplet)
-  # Triplet-training (2.48k speakers).
-  echo "[train_triplet] selected."
-  python cli.py train-model --working_dir "${TRIPLET_TRAINING_WORKING_DIR}"
-  ;;
+	# Triplet-training (2.48k speakers).
+	echo "[train_triplet] selected."
+	python cli.py train-model --working_dir "${TRIPLET_TRAINING_WORKING_DIR}" --epochs ${EPOCHS} --steps_per_epoch ${STEP_PER_EPOCH}
+	;;
 
 *)
-  echo "Unknown option."
-  ;;
+	echo "Unknown option."
+	;;
 
 esac

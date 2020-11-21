@@ -33,12 +33,13 @@ def version():
 @cli.command('build-mfcc-cache', short_help='Build audio cache.')
 @click.option('--working_dir', required=True, type=Ct.output_dir())
 @click.option('--audio_dir', default=None)
+@click.option('--extension', default='flac')
 @click.option('--sample_rate', default=SAMPLE_RATE, show_default=True, type=int)
-def build_audio_cache(working_dir, audio_dir, sample_rate):
+def build_audio_cache(working_dir, audio_dir, sample_rate, extension):
     ensures_dir(working_dir)
     if audio_dir is None:
         audio_dir = os.path.join(working_dir, 'LibriSpeech')
-    Audio(cache_dir=working_dir, audio_dir=audio_dir, sample_rate=sample_rate)
+    Audio(cache_dir=working_dir, audio_dir=audio_dir, sample_rate=sample_rate, ext=extension)
 
 
 @cli.command('build-keras-inputs', short_help='Build inputs to Keras.')
@@ -72,8 +73,10 @@ def test_model(working_dir, checkpoint_file=None):
 
 @cli.command('train-model', short_help='Train a Keras model.')
 @click.option('--working_dir', required=True, type=Ct.input_dir())
+@click.option('--epochs', default=100)
+@click.option('--steps_per_epoch', default=1000)
 @click.option('--pre_training_phase/--no_pre_training_phase', default=False, show_default=True)
-def train_model(working_dir, pre_training_phase):
+def train_model(working_dir, pre_training_phase, epochs, steps_per_epoch):
     # PRE TRAINING
 
     # commit a5030dd7a1b53cd11d5ab7832fa2d43f2093a464
@@ -92,7 +95,7 @@ def train_model(working_dir, pre_training_phase):
     # 2000/2000 [==============================] - 927s 464ms/step - loss: 0.0075 - val_loss: 0.0059
     # Epoch 178/1000
     # 2000/2000 [==============================] - 948s 474ms/step - loss: 0.0073 - val_loss: 0.0058
-    start_training(working_dir, pre_training_phase)
+    start_training(working_dir, pre_training_phase, epochs, steps_per_epoch)
 
 
 if __name__ == '__main__':

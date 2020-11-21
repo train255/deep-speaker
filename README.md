@@ -1,9 +1,9 @@
 ## Deep Speaker: An End-to-End Neural Speaker Embedding System.
-Unofficial Keras implementation of Deep Speaker | [Paper](https://arxiv.org/pdf/1705.02304.pdf) | [Pretrained Models](https://drive.google.com/open?id=18h2bmsAWrqoUMsh_FQHDDxp7ioGpcNBa).
+Unofficial Keras implementation of Deep Speaker | [Paper](https://arxiv.org/pdf/1705.02304.pdf) | [Pretrained Models](https://drive.google.com/open?id=18h2bmsAWrqoUMsh_FQHDDxp7ioGpcNBa)
 
 ### Sample Results
 
-Models were trained on clean speech data. Keep in mind that the performance will be lower on noisy data.
+Models were trained on clean speech data.
 
  *Model name* | *Testing dataset* | *Num speakers* | *F* | *TPR* | *ACC* | *EER* | Training Logs | Download model
  | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
@@ -39,14 +39,14 @@ System requirements for a complete training are:
 
 ```bash
 pip uninstall -y tensorflow && pip install tensorflow-gpu
-./deep-speaker download_librispeech    # if the download is too slow, consider replacing [wget] by [axel -n 10 -a] in download_librispeech.sh.
-./deep-speaker build_mfcc              # will build MFCC for softmax pre-training and triplet training.
-./deep-speaker build_model_inputs      # will build inputs for softmax pre-training.
-./deep-speaker train_softmax           # takes ~3 days.
-./deep-speaker train_triplet           # takes ~3 days.
+./deep-speaker -t download_librispeech    # if the download is too slow, consider replacing [wget] by [axel -n 10 -a] in download_librispeech.sh.
+./deep-speaker -t build_mfcc              # will build MFCC for softmax pre-training and triplet training.
+./deep-speaker -t build_model_inputs      # will build inputs for softmax pre-training.
+./deep-speaker -t train_softmax           # takes ~3 days.
+./deep-speaker -t train_triplet           # takes ~3 days.
 ```
 
-NOTE: If you want to use your own dataset, make sure you follow the directory structure of librispeech. Audio files have to be in `.flac`. format. If you have `.wav`, you can use `ffmpeg` to make the conversion. Both formats are flawless (FLAC is compressed WAV).
+NOTE: If you want to use your own dataset, make sure you follow the directory structure of librispeech. Audio files have to be in `.flac` or `.wav`. format. If not you can use `ffmpeg` to make the conversion.
 
 ### Test instruction using pretrained model
 - Download the trained models
